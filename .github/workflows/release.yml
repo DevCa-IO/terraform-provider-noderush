@@ -1,0 +1,44 @@
+# Terraform Registry release workflow.
+#
+# IMPORTANT: GitHub only runs workflows from `.github/workflows/` at a REPO root.
+# This file lives under the provider directory because the provider currently
+# sits inside the NodeRush monorepo. To publish to the public registry, move the
+# provider into its own repo `DevCa-IO/terraform-provider-noderush` and place
+# this file at that repo's `.github/workflows/release.yml`.
+#
+# Setup (one time):
+#   1. Generate a GPG key, add the public key to your Terraform Registry account.
+#   2. Add repo secrets: GPG_PRIVATE_KEY (ASCII-armored), PASSPHRASE.
+#   3. Connect the GitHub repo on registry.terraform.io and click Publish.
+# Then: push a tag `vX.Y.Z` and this builds + signs + releases; the registry
+# ingests it automatically.
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        id: import_gpg
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+        env:
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

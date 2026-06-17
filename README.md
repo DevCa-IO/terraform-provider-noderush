@@ -67,6 +67,30 @@ output "fra_status" {
 }
 ```
 
+## Publishing
+
+### Public Terraform Registry
+
+1. Move this directory into its own public GitHub repo named exactly
+   `terraform-provider-noderush` (the registry requires that name at repo root).
+2. Generate a GPG key; add the **public** key to your Terraform Registry account
+   (Settings → Signing Keys), and add `GPG_PRIVATE_KEY` (ASCII-armored) +
+   `PASSPHRASE` as repo Actions secrets.
+3. Connect the repo on registry.terraform.io and click Publish.
+4. Push a semver tag: `git tag v0.1.0 && git push origin v0.1.0`. The included
+   `.github/workflows/release.yml` runs GoReleaser, which builds the
+   multi-platform zips, `_SHA256SUMS`, and the GPG signature; the registry
+   ingests the GitHub release automatically. Consumers then use
+   `source = "DevCa-IO/noderush"`.
+
+### Private use (no public listing)
+
+- `dev_overrides` (above) for local development.
+- A **filesystem mirror**: `goreleaser release --snapshot --clean`, then drop the
+  zips under `~/.terraform.d/plugins/registry.terraform.io/DevCa-IO/noderush/<version>/<os>_<arch>/`
+  or point Terraform CLI at a mirror dir with `provider_installation { filesystem_mirror { path = "..." } }`.
+- A Terraform Cloud/Enterprise **private registry**.
+
 ## Notes
 
 - `noderush_volume` resize is grow-only; the API rejects a smaller `size_gb`,
