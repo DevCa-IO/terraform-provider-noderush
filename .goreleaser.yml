@@ -36,6 +36,12 @@ archives:
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
+  # The registry requires the manifest's checksum to be IN the SHA256SUMS file,
+  # not just the release. Without this it errors: "missing SHA256 checksum for
+  # ..._manifest.json".
+  extra_files:
+    - glob: 'terraform-registry-manifest.json'
+      name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
 
 signs:
   - artifacts: checksum
