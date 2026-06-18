@@ -9,8 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
-// Run "go generate" to format example terraform files and generate docs.
+// Run "go generate ./..." to format the examples and regenerate the docs/
+// folder from the provider schema (requires the `terraform` binary on PATH).
 //go:generate terraform fmt -recursive ./examples/
+//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs generate --provider-name noderush
 
 var version = "dev"
 
