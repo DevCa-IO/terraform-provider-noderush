@@ -43,7 +43,7 @@ terraform {
   required_providers {
     noderush = {
       source  = "DevCa-IO/noderush"
-      version = "~> 0.1"
+      version = "~> 1.0"
     }
   }
 }
