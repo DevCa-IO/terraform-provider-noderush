@@ -148,6 +148,100 @@ func (c *Client) DeleteVolume(ctx context.Context, id string) error {
 	return c.do(ctx, http.MethodDelete, "/v1/volumes/"+id, nil, nil)
 }
 
+// ───────────────────────── Nodes ─────────────────────────
+
+type Node struct {
+	ID            string  `json:"id"`
+	Hostname      string  `json:"hostname"`
+	RegionCode    string  `json:"regionCode"`
+	ImageID       string  `json:"imageId"`
+	CPU           int64   `json:"cpu"`
+	RAMGB         int64   `json:"ramGB"`
+	DiskGB        int64   `json:"diskGB"`
+	IPv4          *string `json:"ipv4"`
+	IPv6          *string `json:"ipv6"`
+	Status        string  `json:"status"`
+	BillingMode   string  `json:"billingMode"`
+	FailureReason *string `json:"failureReason"`
+}
+
+// NodeCreate is the create payload. Only non-zero optional fields are sent.
+type NodeCreate struct {
+	Hostname    string   `json:"hostname"`
+	RegionCode  string   `json:"regionCode"`
+	ImageID     string   `json:"imageId"`
+	CPU         int64    `json:"cpu"`
+	RAMGB       int64    `json:"ramGB"`
+	DiskGB      int64    `json:"diskGB"`
+	BillingMode string   `json:"billingMode,omitempty"`
+	SKUID       string   `json:"skuId,omitempty"`
+	CloudInit   string   `json:"cloudInit,omitempty"`
+	SSHKeyIDs   []string `json:"sshKeyIds,omitempty"`
+}
+
+func (c *Client) CreateNode(ctx context.Context, body NodeCreate) (*Node, error) {
+	var out Node
+	err := c.do(ctx, http.MethodPost, "/v1/nodes", body, &out)
+	return &out, err
+}
+
+// GetNode returns the node, or nil if it is gone (404 or DESTROYED).
+func (c *Client) GetNode(ctx context.Context, id string) (*Node, error) {
+	var out Node
+	err := c.do(ctx, http.MethodGet, "/v1/nodes/"+id, nil, &out)
+	if err != nil {
+		if strings.Contains(err.Error(), ": 404 ") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if out.Status == "DESTROYED" {
+		return nil, nil
+	}
+	return &out, nil
+}
+
+func (c *Client) DeleteNode(ctx context.Context, id string) error {
+	return c.do(ctx, http.MethodDelete, "/v1/nodes/"+id, nil, nil)
+}
+
+// ───────────────────────── Images / Plans (data sources) ─────────────────────────
+
+type Image struct {
+	ID        string `json:"id"`
+	OS        string `json:"os"`
+	Label     string `json:"label"`
+	IsWindows bool   `json:"isWindows"`
+	Active    bool   `json:"active"`
+}
+
+func (c *Client) ListImages(ctx context.Context) ([]Image, error) {
+	var list []Image
+	err := c.do(ctx, http.MethodGet, "/v1/images", nil, &list)
+	return list, err
+}
+
+type Plan struct {
+	ID           string `json:"id"`
+	Family       string `json:"family"`
+	Label        string `json:"label"`
+	CPU          int64  `json:"cpu"`
+	RAMGB        int64  `json:"ramGB"`
+	DiskGB       int64  `json:"diskGB"`
+	HourlyCents  int64  `json:"hourlyCents"`
+	MonthlyCents int64  `json:"monthlyCents"`
+}
+
+func (c *Client) ListPlans(ctx context.Context, regionCode string) ([]Plan, error) {
+	path := "/v1/plans"
+	if regionCode != "" {
+		path += "?regionCode=" + regionCode
+	}
+	var list []Plan
+	err := c.do(ctx, http.MethodGet, path, nil, &list)
+	return list, err
+}
+
 // ───────────────────────── Regions (data source) ─────────────────────────
 
 type Region struct {

@@ -11,11 +11,17 @@ regions across the EU (Frankfurt, Amsterdam, Chișinău, Paris) and the USA
 (Ashburn). This provider lets you manage NodeRush resources declaratively
 through the NodeRush API.
 
-It currently manages:
+It manages:
 
+- **`noderush_node`** — a VPS node. `apply` blocks until it is provisioned.
 - **`noderush_ssh_key`** — SSH keys injected into Linux nodes at deploy time.
 - **`noderush_volume`** — block storage volumes (per-GB-month, grow-only resize).
-- **`noderush_regions`** (data source) — the regions you can deploy into.
+
+Data sources:
+
+- **`noderush_regions`** — the regions you can deploy into.
+- **`noderush_images`** — the OS images for a node.
+- **`noderush_plans`** — the compute plans (SKUs), optionally per region.
 
 ## Authentication
 
@@ -51,13 +57,23 @@ provider "noderush" {
   api_token = var.noderush_token
 }
 
-# Discover available regions.
-data "noderush_regions" "all" {}
+data "noderush_images" "all" {}
 
 # An SSH key to inject into Linux nodes.
 resource "noderush_ssh_key" "deploy" {
   name       = "ci-deploy"
   public_key = file("~/.ssh/id_ed25519.pub")
+}
+
+# A VPS node in Frankfurt. apply blocks until it is ONLINE.
+resource "noderush_node" "web" {
+  hostname    = "web-1"
+  region_code = "fra"
+  image_id    = one([for i in data.noderush_images.all.images : i.id if i.os == "ubuntu" && i.active])
+  cpu         = 2
+  ram_gb      = 4
+  disk_gb     = 80
+  ssh_key_ids = [noderush_ssh_key.deploy.id]
 }
 
 # A 50 GB block volume in Frankfurt (grow-only).
@@ -67,8 +83,8 @@ resource "noderush_volume" "data" {
   size_gb     = 50
 }
 
-output "fra_status" {
-  value = one([for r in data.noderush_regions.all.regions : r.status if r.code == "fra"])
+output "web_ipv4" {
+  value = noderush_node.web.ipv4
 }
 ```
 

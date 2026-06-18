@@ -3,9 +3,10 @@
 Manage NodeRush resources (block volumes, SSH keys) declaratively. The provider
 talks to the NodeRush API gateway using a personal access token (PAT).
 
-> Status: initial release. Resources: `noderush_ssh_key`, `noderush_volume`.
-> Data source: `noderush_regions`. The `noderush_node` resource is next (node
-> deploys are asynchronous and bill upfront, so they need extra plan handling).
+> Resources: `noderush_node`, `noderush_ssh_key`, `noderush_volume`.
+> Data sources: `noderush_regions`, `noderush_images`, `noderush_plans`.
+> `noderush_node` apply blocks until the node is provisioned (ONLINE) and bills
+> the wallet upfront.
 
 ## Build
 
@@ -49,11 +50,21 @@ Create the token in the dashboard under Settings → API keys.
 ## Example
 
 ```hcl
-data "noderush_regions" "all" {}
+data "noderush_images" "all" {}
 
 resource "noderush_ssh_key" "deploy" {
   name       = "ci-deploy"
   public_key = file("~/.ssh/id_ed25519.pub")
+}
+
+resource "noderush_node" "web" {
+  hostname    = "web-1"
+  region_code = "fra"
+  image_id    = one([for i in data.noderush_images.all.images : i.id if i.os == "ubuntu" && i.active])
+  cpu         = 2
+  ram_gb      = 4
+  disk_gb     = 80
+  ssh_key_ids = [noderush_ssh_key.deploy.id]
 }
 
 resource "noderush_volume" "data" {
@@ -62,8 +73,8 @@ resource "noderush_volume" "data" {
   size_gb     = 50 # grow-only; increasing this resizes in place
 }
 
-output "fra_status" {
-  value = one([for r in data.noderush_regions.all.regions : r.status if r.code == "fra"])
+output "web_ipv4" {
+  value = noderush_node.web.ipv4
 }
 ```
 

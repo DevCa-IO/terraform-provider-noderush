@@ -85,6 +85,7 @@ func (p *NodeRushProvider) Configure(ctx context.Context, req provider.Configure
 
 func (p *NodeRushProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
+		NewNodeResource,
 		NewSSHKeyResource,
 		NewVolumeResource,
 	}
@@ -93,5 +94,7 @@ func (p *NodeRushProvider) Resources(_ context.Context) []func() resource.Resour
 func (p *NodeRushProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewRegionsDataSource,
+		NewImagesDataSource,
+		NewPlansDataSource,
 	}
 }
